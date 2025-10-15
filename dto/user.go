@@ -2,7 +2,6 @@ package dto
 
 type User struct {
 	ID         uint   `json:"id"`
-	UUID       string `json:"uuid"`
 	Name       string `json:"name"`
 	Username   string `json:"username"`
 	Age        int    `json:"age"`
