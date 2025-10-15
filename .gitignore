@@ -1,4 +1,8 @@
 # env file
 .env
 
+#IDE
+.idea
+.idea/*
+
 ./resources
