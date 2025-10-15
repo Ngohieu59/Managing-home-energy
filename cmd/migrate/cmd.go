@@ -53,6 +53,6 @@ func startMigration() {
 		msg += ", but no changes"
 	}
 	zap.S().Info(msg)
-	fmt.Println("thanhcongroi")
+
 	return
 }

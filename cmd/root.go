@@ -3,7 +3,6 @@ package cmd
 import (
 	"Managing-home-energy/cmd/api"
 	"Managing-home-energy/cmd/migrate"
-	"fmt"
 	"os"
 
 	"github.com/spf13/cobra"
@@ -23,7 +22,7 @@ func init() {
 func Execute() {
 	err := rootCmd.Execute()
 	if err != nil {
-		fmt.Println("lolllllll")
+
 		os.Exit(1)
 	}
 }

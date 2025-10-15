@@ -9,7 +9,6 @@ import (
 	"context"
 	"encoding/hex"
 	"errors"
-	"fmt"
 	"time"
 
 	"github.com/golang-jwt/jwt/v5"
@@ -89,6 +88,6 @@ func (s *authServiceImpl) authCodeSymKeyGenerate(tenantId string) (string, error
 			keyFull += "0"
 		}
 	}
-	fmt.Println("chay duoc khong zay6")
+
 	return keyFull[:64], nil
 }

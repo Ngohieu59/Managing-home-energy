@@ -72,6 +72,5 @@ func (u *userRepo) List(ctx context.Context, limit int, offset int, OrderBy stri
 		Data: userList,
 	}
 
-	fmt.Printf("data all user %v", resp)
 	return resp, nil
 }

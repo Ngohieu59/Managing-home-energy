@@ -35,11 +35,11 @@ func startApi() {
 	service.Inject(injection)
 
 	r, err := InitRouter(injection)
-	fmt.Println("chay duoc khong zay")
+
 	if err != nil {
 		panic(err)
 	}
-	fmt.Println("chay duoc khong zay1")
+
 	cf := do.MustInvoke[*conf.Config](injection)
 	addr := fmt.Sprintf(":%v", cf.ApiService.Port)
 	log.Infow(context.Background(), fmt.Sprintf("start api server at %v", addr))

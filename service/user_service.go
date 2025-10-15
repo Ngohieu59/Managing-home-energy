@@ -7,7 +7,6 @@ import (
 	"Managing-home-energy/repository/mysql"
 	"Managing-home-energy/utils"
 	"context"
-	"fmt"
 	"strconv"
 
 	"github.com/gin-gonic/gin"
@@ -153,8 +152,7 @@ func (s *userServiceImpl) List(ctx *gin.Context, req *dto.ListUserReq) (*dto.Lis
 	limit, _ := strconv.Atoi(req.Limit)
 	offset, _ := strconv.Atoi(req.Offset)
 	orderBy := req.OrderBy
-	fmt.Println("nhin cho ky vao")
-	fmt.Println(limit, offset, orderBy)
+
 	users, err := s.userRepo.List(ctx, limit, offset, orderBy)
 	if err != nil {
 		return nil, err
