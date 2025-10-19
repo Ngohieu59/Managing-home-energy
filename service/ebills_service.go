@@ -4,7 +4,7 @@ import (
 	"Managing-home-energy/constants"
 	"Managing-home-energy/dto"
 	"Managing-home-energy/repository/mysql"
-	"errors"
+	"math"
 	"strconv"
 	"time"
 
@@ -14,105 +14,95 @@ import (
 
 const (
 	layout = "02-01-2006" // định dạng dd-mm-yyyy
+	day    = 31
 )
 
-type EbillsService interface {
-	GeteBillMoney(ctx *gin.Context, req *dto.EBillMoneyReq) (*dto.EbillMoneyResp, error)
+var (
+	UnitQuantityL1 = constants.UnitLevel1.Quantity / day
+	UnitQuantityL2 = constants.UnitLevel2.Quantity / day
+	UnitQuantityL3 = constants.UnitLevel3.Quantity / day
+	UnitQuantityL4 = constants.UnitLevel4.Quantity / day
+	UnitQuantityL5 = constants.UnitLevel5.Quantity / day
+	UnitPriceL1    = constants.UnitLevel1.UnitPrice
+	UnitPriceL2    = constants.UnitLevel2.UnitPrice
+	UnitPriceL3    = constants.UnitLevel3.UnitPrice
+	UnitPriceL4    = constants.UnitLevel4.UnitPrice
+	UnitPriceL5    = constants.UnitLevel5.UnitPrice
+	UnitPriceL6    = constants.UnitLevel6.UnitPrice
+)
+
+type EBillsService interface {
+	GetEAmount(ctx *gin.Context, req *dto.EBillMoneyReq) (*dto.EBillMoneyResp, error)
 	ReportMonthlyUsageComparison(ctx *gin.Context, Month string) (*dto.ReportMonthlyResp, error)
+	EstimateEBill(ctx *gin.Context, req *dto.EBillMoneyReq) (*dto.EBillMoneyResp, error)
 }
 
-type EbillServiceImpl struct {
-	ebillRepo mysql.EbillRepository
+type EBillServiceImpl struct {
+	EBillRepo mysql.EBillRepository
 }
 
-func newEbillService(di *do.Injector) (EbillsService, error) {
-	return &EbillServiceImpl{
-		ebillRepo: do.MustInvoke[mysql.EbillRepository](di),
+func newEBillService(di *do.Injector) (EBillsService, error) {
+	return &EBillServiceImpl{
+		EBillRepo: do.MustInvoke[mysql.EBillRepository](di),
 	}, nil
 }
 
-func (e *EbillServiceImpl) GeteBillMoney(ctx *gin.Context, req *dto.EBillMoneyReq) (*dto.EbillMoneyResp, error) {
-	var TotalElecUsed = 0.0
-	var TotalMoneyBeforeTax = 0.0
-	userName, _ := ctx.Get(constants.ClaimUsername)
+func (e *EBillServiceImpl) GetEAmount(ctx *gin.Context, req *dto.EBillMoneyReq) (*dto.EBillMoneyResp, error) {
+	userName, exists := ctx.Get(constants.ClaimUsername)
+	if !exists {
+		return nil, dto.ErrUserTokenInvalidOrExpired
+	}
+
 	StartDate, errS := time.Parse(layout, req.StartDate)
-	//fmt.Printf("StartDate %s\n", StartDate)
 	if errS != nil {
-		return nil, errors.New("start date format error, format: dd-mm-yyyy")
+		return nil, dto.ErrDataFormatWrong
 	}
 	EndDate, errD := time.Parse(layout, req.EndDate)
-	//fmt.Printf("EndDate %s\n", EndDate)
 	if errD != nil {
-		return nil, errors.New("end date format error, format: dd-mm-yyyy")
+		return nil, dto.ErrDataFormatWrong
 	}
+
 	if StartDate.After(EndDate) {
-		return nil, errors.New("start date after end date")
+		return nil, dto.ErrStartAfterEnd
 	}
-	//fmt.Printf("Name %v", userName)
-	//fmt.Printf("StartDate: %s, EndDate: %s\n", StartDate, EndDate)
-	AllERecord, err := e.ebillRepo.FindAllRecordByName(ctx, userName.(string), StartDate, EndDate)
+
+	TotalEUsed, err := e.EBillRepo.FindAllRecordByName(ctx, userName.(string), StartDate, EndDate)
 	if err != nil {
 		return nil, err
 	}
-	for i := 0; i < len(AllERecord); i++ {
-		TotalElecUsed += AllERecord[i].Elec_used
-	}
-	//fmt.Printf("Luong dien su dung: %v", TotalElecUsed)
-	if TotalElecUsed <= constants.UnitLevel1.Quantity {
-		TotalMoneyBeforeTax += constants.UnitLevel1.UnitPrice * TotalElecUsed
-	} else if TotalElecUsed <= (constants.UnitLevel2.Quantity + constants.UnitLevel1.Quantity) {
-		TotalMoneyBeforeTax += constants.UnitLevel1.Quantity*constants.UnitLevel1.UnitPrice + (TotalElecUsed-constants.UnitLevel1.Quantity)*constants.UnitLevel2.UnitPrice
-	} else if TotalElecUsed <= (constants.UnitLevel3.Quantity + constants.UnitLevel2.Quantity + constants.UnitLevel1.Quantity) {
-		TotalMoneyBeforeTax += constants.UnitLevel1.Quantity*constants.UnitLevel1.UnitPrice + constants.UnitLevel2.Quantity*constants.UnitLevel2.UnitPrice + (TotalElecUsed-constants.UnitLevel1.Quantity-constants.UnitLevel2.Quantity)*constants.UnitLevel3.UnitPrice
-	} else if TotalElecUsed <= (constants.UnitLevel1.Quantity + constants.UnitLevel2.Quantity + constants.UnitLevel4.Quantity + constants.UnitLevel3.Quantity) {
-		TotalMoneyBeforeTax = constants.UnitLevel1.Quantity*constants.UnitLevel1.UnitPrice + constants.UnitLevel2.Quantity*constants.UnitLevel2.UnitPrice + constants.UnitLevel3.Quantity*constants.UnitLevel3.UnitPrice + (TotalElecUsed-constants.UnitLevel1.Quantity-constants.UnitLevel2.Quantity-constants.UnitLevel3.Quantity)*constants.UnitLevel4.UnitPrice
-	} else if TotalElecUsed <= (constants.UnitLevel1.Quantity + constants.UnitLevel2.Quantity + constants.UnitLevel3.Quantity + constants.UnitLevel4.Quantity + constants.UnitLevel5.Quantity) {
-		TotalMoneyBeforeTax = constants.UnitLevel1.Quantity*constants.UnitLevel1.UnitPrice + constants.UnitLevel2.Quantity*constants.UnitLevel2.UnitPrice + constants.UnitLevel3.Quantity*constants.UnitLevel3.UnitPrice + constants.UnitLevel4.Quantity*constants.UnitLevel4.UnitPrice + (TotalElecUsed-constants.UnitLevel1.Quantity-constants.UnitLevel2.Quantity-constants.UnitLevel3.Quantity-constants.UnitLevel4.Quantity)*constants.UnitLevel5.UnitPrice
-	} else {
-		TotalMoneyBeforeTax = constants.UnitLevel1.Quantity*constants.UnitLevel1.UnitPrice + constants.UnitLevel2.Quantity*constants.UnitLevel2.UnitPrice + constants.UnitLevel3.Quantity*constants.UnitLevel3.UnitPrice + constants.UnitLevel4.Quantity*constants.UnitLevel4.UnitPrice + constants.UnitLevel5.Quantity*constants.UnitLevel5.UnitPrice + (TotalElecUsed-constants.UnitLevel1.Quantity-constants.UnitLevel2.Quantity-constants.UnitLevel3.Quantity-constants.UnitLevel4.Quantity-constants.UnitLevel5.Quantity)*constants.UnitLevel6.UnitPrice
-	}
-	TotalMoney := TotalMoneyBeforeTax * (1 + constants.Taxt/100)
-	//fmt.Printf("TotalMoney: %v, TotalMoneyBeforeTax: %v", TotalMoney, TotalMoneyBeforeTax)
-	resp := &dto.EbillMoneyResp{
+
+	resp := &dto.EBillMoneyResp{
 		StartDate: req.StartDate,
 		EndDate:   req.EndDate,
-		Money:     TotalMoney,
-		ElectUsed: TotalElecUsed,
+		ElectUsed: TotalEUsed,
 	}
 	return resp, nil
 }
 
-func (e *EbillServiceImpl) ReportMonthlyUsageComparison(ctx *gin.Context, Month string) (*dto.ReportMonthlyResp, error) {
-	var TotalElectUsedCurrentYear = 0.0
-	var TotalElectUsedLastYear = 0.0
-	if Month == "" {
-		return nil, errors.New("month is empty")
+func (e *EBillServiceImpl) ReportMonthlyUsageComparison(ctx *gin.Context, Month string) (*dto.ReportMonthlyResp, error) {
+	userName, exists := ctx.Get(constants.ClaimUsername)
+	if !exists {
+		return nil, dto.ErrUserTokenInvalidOrExpired
 	}
-	userName, _ := ctx.Get(constants.ClaimUsername)
 	MonthInt, Err := strconv.Atoi(Month)
 	if Err != nil {
-		return nil, Err
+		return nil, dto.ErrStrconv
 	}
 	if MonthInt < 1 || MonthInt > 12 {
-		return nil, errors.New("invalid Month")
+		return nil, dto.ErrDataFormatWrong
 	}
 
 	currentYear := time.Now().Year()
 
-	ReportCurrentYear, errC := e.ebillRepo.FindAllRecordByMonth(ctx, userName.(string), MonthInt, currentYear)
+	TotalElectUsedCurrentYear, errC := e.EBillRepo.FindAllRecordByMonth(ctx, userName.(string), MonthInt, currentYear)
 	if errC != nil {
 		return nil, errC
 	}
-	ReportLastYear, errL := e.ebillRepo.FindAllRecordByMonth(ctx, userName.(string), MonthInt, currentYear-1)
+	TotalElectUsedLastYear, errL := e.EBillRepo.FindAllRecordByMonth(ctx, userName.(string), MonthInt, currentYear-1)
 	if errL != nil {
 		return nil, errL
 	}
-	for i := 0; i < len(ReportCurrentYear); i++ {
-		TotalElectUsedCurrentYear += ReportCurrentYear[i].Elec_used
-	}
-	for i := 0; i < len(ReportLastYear); i++ {
-		TotalElectUsedLastYear += ReportLastYear[i].Elec_used
-	}
+
 	reps := &dto.ReportMonthlyResp{
 		ThisYear: &dto.ReportMonthly{
 			Month:     MonthInt,
@@ -126,4 +116,46 @@ func (e *EbillServiceImpl) ReportMonthlyUsageComparison(ctx *gin.Context, Month 
 		},
 	}
 	return reps, nil
+}
+
+func (e *EBillServiceImpl) EstimateEBill(ctx *gin.Context, req *dto.EBillMoneyReq) (*dto.EBillMoneyResp, error) {
+	var TotalMoneyBeforeTax = 0.0
+	EUsed := req.Electric
+	StartDate, errS := time.Parse(layout, req.StartDate)
+	if errS != nil {
+		return nil, dto.ErrDataFormatWrong
+	}
+	EndDate, errD := time.Parse(layout, req.EndDate)
+	if errD != nil {
+		return nil, dto.ErrDataFormatWrong
+	}
+	if StartDate.After(EndDate) {
+		return nil, dto.ErrStartAfterEnd
+	}
+
+	days := EndDate.Sub(StartDate).Hours()/24 + 1
+	QuantityL1, QuantityL2, QuantityL3, QuantityL4, QuantityL5 := math.Round(UnitQuantityL1*days), math.Round(UnitQuantityL2*days), math.Round(UnitQuantityL3*days), math.Round(UnitQuantityL4*days), math.Round(UnitQuantityL5*days)
+
+	if EUsed <= QuantityL1 {
+		TotalMoneyBeforeTax += UnitPriceL1 * EUsed
+	} else if EUsed <= (QuantityL2 + QuantityL1) {
+		TotalMoneyBeforeTax += QuantityL1*UnitPriceL1 + (EUsed-QuantityL1)*UnitPriceL2
+	} else if EUsed <= (QuantityL3 + QuantityL2 + QuantityL1) {
+		TotalMoneyBeforeTax += QuantityL1*UnitPriceL1 + QuantityL2*UnitPriceL2 + (EUsed-QuantityL1-QuantityL2)*UnitPriceL3
+	} else if EUsed <= (QuantityL1 + QuantityL2 + QuantityL4 + QuantityL3) {
+		TotalMoneyBeforeTax = QuantityL1*UnitPriceL1 + QuantityL2*UnitPriceL2 + QuantityL3*UnitPriceL3 + (EUsed-QuantityL1-QuantityL2-QuantityL3)*UnitPriceL4
+	} else if EUsed <= (QuantityL1 + QuantityL2 + QuantityL3 + QuantityL4 + QuantityL5) {
+		TotalMoneyBeforeTax = QuantityL1*UnitPriceL1 + QuantityL2*UnitPriceL2 + QuantityL3*UnitPriceL3 + QuantityL4*UnitPriceL4 + (EUsed-QuantityL1-QuantityL2-QuantityL3-QuantityL4)*UnitPriceL5
+	} else {
+		TotalMoneyBeforeTax = QuantityL1*UnitPriceL1 + QuantityL2*UnitPriceL2 + QuantityL3*UnitPriceL3 + QuantityL4*UnitPriceL4 + QuantityL5*UnitPriceL5 + (EUsed-QuantityL1-QuantityL2-QuantityL3-QuantityL4-QuantityL5)*UnitPriceL6
+	}
+	TotalMoney := math.Round(TotalMoneyBeforeTax * (1 + constants.Taxt/100))
+
+	resp := &dto.EBillMoneyResp{
+		StartDate: req.StartDate,
+		EndDate:   req.EndDate,
+		Money:     TotalMoney,
+		ElectUsed: EUsed,
+	}
+	return resp, nil
 }

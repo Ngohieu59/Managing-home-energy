@@ -1,11 +1,12 @@
 package dto
 
 type EBillMoneyReq struct {
-	StartDate string `json:"StartDate"`
-	EndDate   string `json:"EndDate"`
+	StartDate string  `json:"StartDate"`
+	EndDate   string  `json:"EndDate"`
+	Electric  float64 `json:"Electric"`
 }
 
-type EbillMoneyResp struct {
+type EBillMoneyResp struct {
 	StartDate string  `json:"start"`
 	EndDate   string  `json:"end"`
 	Money     float64 `json:"money"`

@@ -1,9 +1,10 @@
 package controller
 
 import (
+	http_response "Managing-home-energy/cmd/api/controller/http-response"
 	"Managing-home-energy/dto"
 	"Managing-home-energy/service"
-	"net/http"
+	"errors"
 
 	"github.com/gin-gonic/gin"
 	"github.com/samber/do"
@@ -25,11 +26,26 @@ func NewAuthController(di *do.Injector) AuthController {
 
 func (c *authCtl) PasswordLogin(ctx *gin.Context) {
 	req := &dto.PasswordLoginRequest{}
-	_ = ctx.ShouldBind(req)
-	resp, err := c.authService.PasswordLogin(ctx, req)
-	if err != nil {
-		ctx.JSON(http.StatusInternalServerError, err.Error())
+	errReq := ctx.ShouldBind(req)
+	if errReq != nil {
+		http_response.ReturnErrMessage(ctx, http_response.ErrDataFormatWrong, errReq)
 		return
 	}
-	ctx.JSON(http.StatusOK, resp)
+	resp, err := c.authService.PasswordLogin(ctx, req)
+	if err != nil {
+		switch {
+		case errors.Is(err, dto.ErrUserNameNotFound):
+			http_response.ReturnErrMessage(ctx, http_response.ErrUserNotFound, err)
+			return
+		case errors.Is(err, dto.ErrPasswordIncorrect):
+			http_response.ReturnErrMessage(ctx, http_response.ErrLoginPasswordIncorrect, err)
+			return
+		default:
+			http_response.ReturnErrMessage(ctx, http_response.ErrCannotGenerateToken, err)
+			return
+		}
+	} else {
+		http_response.ReturnSuccessMessage(ctx, resp)
+	}
+
 }

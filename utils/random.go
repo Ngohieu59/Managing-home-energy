@@ -3,6 +3,7 @@ package utils
 import (
 	"crypto/rand"
 	"encoding/hex"
+	"errors"
 )
 
 func IsEmpty(data string) bool {
@@ -30,7 +31,7 @@ func LeftRatation(input string, step int) string {
 func GenerateSalt() (string, error) {
 	bytes := make([]byte, 16)
 	if _, err := rand.Read(bytes); err != nil {
-		return "", err
+		return "", errors.New("read secure random data")
 	}
 	return hex.EncodeToString(bytes), nil
 }

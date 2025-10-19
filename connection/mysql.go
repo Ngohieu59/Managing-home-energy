@@ -18,7 +18,7 @@ func NewMysqlConnection(di *do.Injector) (*gorm.DB, error) {
 		cf.MySQL.Host, cf.MySQL.Port,
 		cf.MySQL.DB,
 	)
-	//fmt.Println(dsn)
+
 	dbOrm, err := gorm.Open(mysql.Open(dsn), &gorm.Config{
 		Logger: logger.Default.LogMode(logger.Info),
 	})

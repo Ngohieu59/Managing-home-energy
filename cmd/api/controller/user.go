@@ -1,10 +1,10 @@
 package controller
 
 import (
+	http_response "Managing-home-energy/cmd/api/controller/http-response"
 	"Managing-home-energy/dto"
 	"Managing-home-energy/service"
-	"fmt"
-	"net/http"
+	"errors"
 	"strconv"
 
 	"github.com/gin-gonic/gin"
@@ -30,50 +30,124 @@ func NewUserController(di *do.Injector) UserController {
 
 func (uc *userCtl) Create(ctx *gin.Context) {
 	req := &dto.CreateUserReq{}
-	_ = ctx.ShouldBind(req)
-	resp, err := uc.userService.CreateUser(ctx, req)
-	if err != nil {
-		ctx.JSON(http.StatusInternalServerError, err.Error())
+	errReq := ctx.ShouldBind(req)
+	if errReq != nil {
+		http_response.ReturnErrMessage(ctx, http_response.ErrDataFormatWrong, errReq)
 		return
 	}
-	ctx.JSON(http.StatusOK, resp)
+	resp, err := uc.userService.CreateUser(ctx, req)
+	switch {
+	case err == nil:
+		break
+	case errors.Is(err, dto.ErrUserIDNotFound):
+		http_response.ReturnErrMessage(ctx, http_response.ErrUserNotFound, err)
+		return
+	case errors.Is(err, dto.ErrUserAlreadyExists):
+		http_response.ReturnErrMessage(ctx, http_response.ErrUserAlreadyExists, errors.New("cannot create same username"))
+		return
+	case errors.Is(err, dto.ErrNotFillAllFields):
+		http_response.ReturnErrMessage(ctx, http_response.ErrNotFillAllFields, errors.New("some fields are missing"))
+		return
+	case errors.Is(err, dto.ErrDataFormatWrong):
+		http_response.ReturnErrMessage(ctx, http_response.ErrDataFormatWrong, err)
+		return
+	default:
+		http_response.ReturnErrMessage(ctx, http_response.ErrInternalServerError, err)
+		return
+	}
+	http_response.ReturnSuccessMessage(ctx, resp)
 }
 
 func (uc *userCtl) Update(ctx *gin.Context) {
 	idStr := ctx.Param("id")
-	id, _ := strconv.ParseInt(idStr, 10, 64)
-	req := &dto.UpdateUserReq{}
-	_ = ctx.ShouldBind(req)
-	resp, err := uc.userService.UpdateUser(ctx, uint(id), req)
-	if err != nil {
-		ctx.JSON(http.StatusInternalServerError, err.Error())
+	id, errConv := strconv.ParseInt(idStr, 10, 64)
+	if errConv != nil {
+		http_response.ReturnErrMessage(ctx, http_response.ErrInternalServerError, errConv)
 		return
 	}
-	ctx.JSON(http.StatusOK, resp)
+	req := &dto.UpdateUserReq{}
+	errReq := ctx.ShouldBind(req)
+	if errReq != nil {
+		http_response.ReturnErrMessage(ctx, http_response.ErrDataFormatWrong, errReq)
+		return
+	}
+	resp, err := uc.userService.UpdateUser(ctx, uint(id), req)
+	if err != nil {
+		switch {
+		case errors.Is(err, dto.ErrUserIDNotFound):
+			http_response.ReturnErrMessage(ctx, http_response.ErrUserNotFound, err)
+			return
+		case errors.Is(err, dto.ErrUserTokenInvalidOrExpired):
+			http_response.ReturnErrMessage(ctx, http_response.ErrUserTokenInvalidOrExpired, err)
+			return
+		case errors.Is(err, dto.ErrPermissionDenied):
+			http_response.ReturnErrMessage(ctx, http_response.ErrPermissionDenied, err)
+			return
+		case errors.Is(err, dto.ErrUserAlreadyExists):
+			http_response.ReturnErrMessage(ctx, http_response.ErrUserAlreadyExists, err)
+			return
+		default:
+			http_response.ReturnErrMessage(ctx, http_response.ErrInternalServerError, err)
+			return
+		}
+	}
+	http_response.ReturnSuccessMessage(ctx, resp)
 }
 
 func (uc *userCtl) Delete(ctx *gin.Context) {
 	idStr := ctx.Param("id")
-	id, _ := strconv.ParseInt(idStr, 10, 64)
+	id, errConv := strconv.ParseInt(idStr, 10, 64)
+	if errConv != nil {
+		http_response.ReturnErrMessage(ctx, http_response.ErrInternalServerError, errConv)
+		return
+	}
 	resp, err := uc.userService.DeleteUser(ctx, uint(id))
 	if err != nil {
-		ctx.JSON(http.StatusInternalServerError, err.Error())
+		switch {
+		case errors.Is(err, dto.ErrUserIDNotFound):
+			http_response.ReturnErrMessage(ctx, http_response.ErrUserNotFound, err)
+			return
+		case errors.Is(err, dto.ErrUserTokenInvalidOrExpired):
+			http_response.ReturnErrMessage(ctx, http_response.ErrUserTokenInvalidOrExpired, err)
+			return
+		case errors.Is(err, dto.ErrPermissionDenied):
+			http_response.ReturnErrMessage(ctx, http_response.ErrPermissionDenied, err)
+			return
+		default:
+			http_response.ReturnErrMessage(ctx, http_response.ErrInternalServerError, err)
+			return
+		}
 	} else {
-		ctx.JSON(http.StatusOK, gin.H{
-			"message": fmt.Sprintf("Đã xóa thành công %v", resp),
-		})
+		http_response.ReturnSuccessMessage(ctx, resp)
 	}
 
 }
 
 func (uc *userCtl) List(ctx *gin.Context) {
 	req := &dto.ListUserReq{}
-	_ = ctx.ShouldBind(req)
+	errReq := ctx.ShouldBind(req)
+	if errReq != nil {
+		http_response.ReturnErrMessage(ctx, http_response.ErrDataFormatWrong, errReq)
+		return
+	}
 	resp, err := uc.userService.List(ctx, req)
 	if err != nil {
-		ctx.JSON(http.StatusInternalServerError, err.Error())
+		switch {
+		case errors.Is(err, dto.ErrUserTokenInvalidOrExpired):
+			http_response.ReturnErrMessage(ctx, http_response.ErrUserTokenInvalidOrExpired, err)
+			return
+		case errors.Is(err, dto.ErrPermissionDenied):
+			http_response.ReturnErrMessage(ctx, http_response.ErrPermissionDenied, err)
+			return
+		case errors.Is(err, dto.ErrStrconv):
+			http_response.ReturnErrMessage(ctx, http_response.ErrStrconv, err)
+			return
+		default:
+			http_response.ReturnErrMessage(ctx, http_response.ErrInternalServerError, err)
+			return
+		}
 	} else {
-		ctx.JSON(http.StatusOK, resp)
+		http_response.ReturnSuccessMessage(ctx, resp)
 	}
 
 }

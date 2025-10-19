@@ -19,10 +19,10 @@ type UnitRecord struct {
 }
 
 var (
-	UnitLevel1 = UnitRecord{UnitPrice: 1984.0, Quantity: 52.0}
-	UnitLevel2 = UnitRecord{UnitPrice: 2050.0, Quantity: 52.0}
-	UnitLevel3 = UnitRecord{UnitPrice: 2380.0, Quantity: 103.0}
-	UnitLevel4 = UnitRecord{UnitPrice: 2998.0, Quantity: 103.0}
-	UnitLevel5 = UnitRecord{UnitPrice: 3350.0, Quantity: 103.0}
+	UnitLevel1 = UnitRecord{UnitPrice: 1984.0, Quantity: 50.0}
+	UnitLevel2 = UnitRecord{UnitPrice: 2050.0, Quantity: 50.0}
+	UnitLevel3 = UnitRecord{UnitPrice: 2380.0, Quantity: 100.0}
+	UnitLevel4 = UnitRecord{UnitPrice: 2998.0, Quantity: 100.0}
+	UnitLevel5 = UnitRecord{UnitPrice: 3350.0, Quantity: 100.0}
 	UnitLevel6 = UnitRecord{UnitPrice: 3460.0, Quantity: 0.0}
 )

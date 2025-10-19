@@ -4,7 +4,7 @@ import (
 	"Managing-home-energy/dto"
 	"Managing-home-energy/model"
 	"context"
-	"fmt"
+	"errors"
 
 	"github.com/samber/do"
 	"gorm.io/gorm"
@@ -31,7 +31,7 @@ func (u *userRepo) FindByID(ctx context.Context, id uint) (*model.User, error) {
 	var user model.User
 	err := u.db.WithContext(ctx).Model(&model.User{}).Where("id = ?", id).First(&user).Error
 	if err != nil {
-		return nil, err
+		return nil, dto.ErrUserIDNotFound
 	}
 	return &user, nil
 }
@@ -40,9 +40,9 @@ func (u *userRepo) FindByName(ctx context.Context, username string) (*model.User
 	var user *model.User
 	err := u.db.WithContext(ctx).Model(&model.User{}).Where("username = ?", username).First(&user).Error
 	if err != nil {
-		return nil, fmt.Errorf("Not found user with name %v", username)
+		return nil, errors.New("not found user with that username")
 	}
-	//fmt.Println(user)
+
 	return user, nil
 }
 

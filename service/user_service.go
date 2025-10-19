@@ -10,7 +10,6 @@ import (
 	"strconv"
 
 	"github.com/gin-gonic/gin"
-	"github.com/pkg/errors"
 	"github.com/samber/do"
 )
 
@@ -33,16 +32,17 @@ func newUserService(di *do.Injector) (UserService, error) {
 
 func (s *userServiceImpl) CreateUser(ctx context.Context, req *dto.CreateUserReq) (*dto.User, error) {
 	existedUser, _ := s.userRepo.FindByName(ctx, req.Username)
+
 	if existedUser != nil && existedUser.Username != "" {
-		return nil, errors.New("username already exist")
+		return nil, dto.ErrUserAlreadyExists
 	}
 
 	if req.Name == "" || req.Username == "" || req.Password == "" {
-		return nil, errors.New("please fill all fields")
+		return nil, dto.ErrNotFillAllFields
 	}
 
 	if req.Age <= 0 {
-		return nil, errors.New("please set age > 0")
+		return nil, dto.ErrDataFormatWrong
 	}
 
 	user := &model.User{
@@ -51,7 +51,10 @@ func (s *userServiceImpl) CreateUser(ctx context.Context, req *dto.CreateUserReq
 		Pass:     req.Password,
 		Username: req.Username,
 	}
-	salt, _ := utils.GenerateSalt()
+	salt, errGen := utils.GenerateSalt()
+	if errGen != nil {
+		return nil, errGen
+	}
 	hashedPass := utils.HashPassword(req.Password, salt)
 	user.Pass = hashedPass
 	user.Salt = salt
@@ -76,21 +79,22 @@ func (s *userServiceImpl) convertToUserDto(user *model.User) *dto.User {
 func (s *userServiceImpl) UpdateUser(ctx *gin.Context, id uint, req *dto.UpdateUserReq) (*dto.User, error) {
 	user, err := s.userRepo.FindByID(ctx, id)
 	if err != nil {
-		return nil, err
+		return nil, dto.ErrUserIDNotFound
 	}
 	userID, existsID := ctx.Get(constants.ClaimUserId)
 	userP, existsP := ctx.Get(constants.ClaimPermission)
 
 	if !existsID || !existsP {
-		return nil, errors.New("claim user not found")
+		return nil, dto.ErrUserTokenInvalidOrExpired
 	}
 	if userP == "user" && userID != user.ID {
-		return nil, errors.New("You don't have the permission")
+		return nil, dto.ErrPermissionDenied
 	}
 	if req.Username != "" {
 		existedUser, _ := s.userRepo.FindByName(ctx, req.Username)
+
 		if existedUser != nil && existedUser.Username != "" {
-			return nil, errors.New("username already exist")
+			return nil, dto.ErrUserAlreadyExists
 		} else {
 			user.Username = req.Username
 		}
@@ -99,7 +103,10 @@ func (s *userServiceImpl) UpdateUser(ctx *gin.Context, id uint, req *dto.UpdateU
 		user.Name = req.Name
 	}
 	if req.Password != "" {
-		salt, _ := utils.GenerateSalt()
+		salt, errGen := utils.GenerateSalt()
+		if errGen != nil {
+			return nil, errGen
+		}
 		hashedPass := utils.HashPassword(req.Password, salt)
 		user.Pass = hashedPass
 		user.Salt = salt
@@ -114,7 +121,7 @@ func (s *userServiceImpl) UpdateUser(ctx *gin.Context, id uint, req *dto.UpdateU
 
 	err = s.userRepo.Update(ctx, user)
 	if err != nil {
-		return nil, err
+		return nil, dto.ErrCreateUserMysql
 	}
 	userRes := s.convertToUserDto(user)
 	return userRes, nil
@@ -128,15 +135,15 @@ func (s *userServiceImpl) DeleteUser(ctx *gin.Context, id uint) (string, error) 
 	userID, existsID := ctx.Get(constants.ClaimUserId)
 	userP, existsP := ctx.Get(constants.ClaimPermission)
 	if !existsID || !existsP {
-		return "", errors.New("claim user not found")
+		return "", dto.ErrUserTokenInvalidOrExpired
 	}
 	if userP == "user" && userID != user.ID {
-		return "", errors.New("You don't have the permission")
+		return "", dto.ErrPermissionDenied
 	}
 
 	err = s.userRepo.Delete(ctx, id)
 	if err != nil {
-		return "", err
+		return "", dto.ErrDeleteUserMysql
 	}
 	return user.Username, nil
 }
@@ -144,13 +151,19 @@ func (s *userServiceImpl) DeleteUser(ctx *gin.Context, id uint) (string, error) 
 func (s *userServiceImpl) List(ctx *gin.Context, req *dto.ListUserReq) (*dto.ListUserResponse, error) {
 	userP, existsP := ctx.Get(constants.ClaimPermission)
 	if !existsP {
-		return nil, errors.New("claim user not found")
+		return nil, dto.ErrUserTokenInvalidOrExpired
 	}
 	if userP != "admin" {
-		return nil, errors.New("You don't have the permission")
+		return nil, dto.ErrPermissionDenied
 	}
-	limit, _ := strconv.Atoi(req.Limit)
-	offset, _ := strconv.Atoi(req.Offset)
+	limit, errStrL := strconv.Atoi(req.Limit)
+	if errStrL != nil {
+		return nil, dto.ErrStrconv
+	}
+	offset, errStrO := strconv.Atoi(req.Offset)
+	if errStrO != nil {
+		return nil, dto.ErrStrconv
+	}
 	orderBy := req.OrderBy
 
 	users, err := s.userRepo.List(ctx, limit, offset, orderBy)

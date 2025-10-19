@@ -35,8 +35,10 @@ func InitRouter(di *do.Injector) (*gin.Engine, error) {
 
 	// Electricity bill API
 	eBillsGroup := v1.Group("/eBills")
+	eBillsGroup.GET("/EstimateEBill", ebillsController.EstimateEBill)
 	eBillsGroup.Use(middlewares.Auth(di))
-	eBillsGroup.GET("/eMoney", ebillsController.EMoney)
+	eBillsGroup.GET("/EAmount", ebillsController.EAmount)
 	eBillsGroup.GET("/Report", ebillsController.ReportMonthly)
+
 	return r, nil
 }

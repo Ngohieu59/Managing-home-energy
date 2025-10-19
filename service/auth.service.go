@@ -45,13 +45,11 @@ func newAuthService(di *do.Injector) (AuthService, error) {
 func (s *authServiceImpl) PasswordLogin(ctx context.Context, req *dto.PasswordLoginRequest) (*dto.LoginResponse, error) {
 	user, err := s.userRepo.FindByName(ctx, req.Username)
 	if err != nil {
-		return nil, err
+		return nil, dto.ErrUserNameNotFound
 	}
 	hashedPass := utils.HashPassword(req.Password, user.Salt)
-	//fmt.Printf("Password : %s\n", req.Password)
-	//fmt.Println(hashedPass)
 	if hashedPass != user.Pass {
-		return nil, errors.New("password incorrect")
+		return nil, dto.ErrPasswordIncorrect
 	}
 	currentTime := time.Now()
 	claims := dto.JwtClaims{
