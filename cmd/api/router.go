@@ -17,11 +17,11 @@ func InitRouter(di *do.Injector) (*gin.Engine, error) {
 
 	userController := controller.NewUserController(di)
 	authController := controller.NewAuthController(di)
-	ebillsController := controller.NewEBillsController(di)
+	eBillsController := controller.NewEBillsController(di)
 
 	v1 := r.Group("/api/v1")
 
-	//passwordlogin
+	//password login
 	authGroup := v1.Group("/auth")
 	authGroup.POST("/login", authController.PasswordLogin)
 
@@ -35,10 +35,10 @@ func InitRouter(di *do.Injector) (*gin.Engine, error) {
 
 	// Electricity bill API
 	eBillsGroup := v1.Group("/eBills")
-	eBillsGroup.GET("/EstimateEBill", ebillsController.EstimateEBill)
+	eBillsGroup.GET("/EstimateEBill", eBillsController.EstimateEBill)
 	eBillsGroup.Use(middlewares.Auth(di))
-	eBillsGroup.GET("/EAmount", ebillsController.EAmount)
-	eBillsGroup.GET("/Report", ebillsController.ReportMonthly)
+	eBillsGroup.GET("/EAmount", eBillsController.EAmount)
+	eBillsGroup.GET("/Report", eBillsController.ReportMonthly)
 
 	return r, nil
 }

@@ -17,6 +17,7 @@ type JwtClaims struct {
 	Username    string `json:"user_username"`
 	UserUUID    string `json:"user_uuid"`
 	Permissions string `json:"user_permission"`
+	Type        string `json:"user_type"`
 }
 
 type PasswordLoginRequest struct {

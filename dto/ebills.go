@@ -23,3 +23,10 @@ type ReportMonthlyResp struct {
 	ThisYear *ReportMonthly `json:"thisyear"`
 	LastYear *ReportMonthly `json:"lastyear"`
 }
+
+type ListEUsedResponse struct {
+	Total  float64
+	Normal float64
+	Low    float64
+	High   float64
+}

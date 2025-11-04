@@ -14,6 +14,8 @@ type Electricity_used struct {
 	Date_used time.Time `gorm:"column:date_used" json:"date_used"`
 	Username  string    `gorm:"type:varchar(100);index:idx_username" json:"username"`
 	Elec_used float64   `gorm:"column:elec_used" json:"elec_used"`
+	StartHour int       `gorm:"column:start_hour" json:"start_hour"` // Giờ bắt đầu (0–23)
+	EndHour   int       `gorm:"column:end_hour" json:"end_hour"`
 }
 
 func (*Electricity_used) TableName() string {

@@ -26,7 +26,7 @@ CREATE TABLE IF NOT EXISTS electricity_useds (
     updated_at DATETIME(3),
     deleted_at DATETIME(3),
     INDEX idx_username (username),
-    CONSTRAINT fk_electricity_user FOREIGN KEY (username)
+    CONSTRAINT username FOREIGN KEY (username)
     REFERENCES users(username)
     ON UPDATE CASCADE
     ON DELETE CASCADE

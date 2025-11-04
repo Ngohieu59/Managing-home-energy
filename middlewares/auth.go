@@ -57,6 +57,7 @@ func Auth(di *do.Injector) gin.HandlerFunc {
 			}
 			ctx.Set(constants.ClaimUserId, userClaim.UserID)
 			ctx.Set(constants.ClaimUsername, userClaim.Username)
+			ctx.Set(constants.ClaimUserType, userClaim.Type)
 			ctx.Set(constants.ClaimUserUUID, userClaim.UserUUID)
 			ctx.Set(constants.ClaimPermission, userClaim.Permissions)
 		default:

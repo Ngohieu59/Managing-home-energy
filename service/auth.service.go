@@ -61,6 +61,7 @@ func (s *authServiceImpl) PasswordLogin(ctx context.Context, req *dto.PasswordLo
 		UserID:      user.ID,
 		UserUUID:    user.UUID.String(),
 		Permissions: user.Permission,
+		Type:        user.Type,
 	}
 	accessToken, err := s.jwtUtil.GenerateToken(&claims)
 	if err != nil {
