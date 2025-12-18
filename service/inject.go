@@ -7,3 +7,7 @@ func Inject(di *do.Injector) {
 	do.Provide(di, newUserService)
 	do.Provide(di, newEBillService)
 }
+
+func InjectStaff(di *do.Injector) {
+	do.Provide(di, newStaffService)
+}

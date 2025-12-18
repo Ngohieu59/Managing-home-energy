@@ -23,6 +23,7 @@ const (
 	VoltageLow         = "low"
 	VoltageHigh        = "high"
 	VoltageMedium      = "medium"
+	RoleEmployee       = "employee"
 )
 
 type UnitRecord struct {

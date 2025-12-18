@@ -5,9 +5,13 @@ import (
 	"Managing-home-energy/dto"
 	"math"
 	"strings"
+	"time"
 )
 
 const day = 31
+const (
+	layout = "02-01-2006" // định dạng dd-mm-yyyy
+)
 
 var (
 	UnitFamilyQuantityL1 = constants.UnitFamilyLevel1.Quantity / day
@@ -129,4 +133,16 @@ func StringSQL(hours []constants.TimeRange) (string, []interface{}) {
 
 	orSQL := "(" + strings.Join(orConditions, " OR ") + ")"
 	return orSQL, args
+}
+
+func CheckDate(StartDate string, EndDate string) (time.Time, time.Time, error) {
+	StartD, errS := time.Parse(layout, StartDate)
+	EndD, errD := time.Parse(layout, EndDate)
+	if errS != nil || errD != nil {
+		return time.Time{}, time.Time{}, dto.ErrDataFormatWrong
+	}
+	if StartD.After(EndD) {
+		return time.Time{}, time.Time{}, dto.ErrStartAfterEnd
+	}
+	return StartD, EndD, nil
 }

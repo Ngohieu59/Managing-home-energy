@@ -4,6 +4,7 @@ import (
 	"Managing-home-energy/constants"
 	"Managing-home-energy/dto"
 	"Managing-home-energy/log"
+	"Managing-home-energy/model"
 	"Managing-home-energy/repository/mysql"
 	"Managing-home-energy/utils"
 	"context"
@@ -17,6 +18,7 @@ import (
 
 type AuthService interface {
 	PasswordLogin(ctx context.Context, req *dto.PasswordLoginRequest) (*dto.LoginResponse, error)
+	StaffPasswordLogin(ctx context.Context, req *dto.PasswordLoginRequest) (*dto.LoginResponse, error)
 }
 
 type authServiceImpl struct {
@@ -42,7 +44,7 @@ func newAuthService(di *do.Injector) (AuthService, error) {
 
 }
 
-func (s *authServiceImpl) PasswordLogin(ctx context.Context, req *dto.PasswordLoginRequest) (*dto.LoginResponse, error) {
+func (s *authServiceImpl) login(ctx context.Context, req *dto.PasswordLoginRequest, roleCheck func(user *model.User) error) (*dto.LoginResponse, error) {
 	user, err := s.userRepo.FindByName(ctx, req.Username)
 	if err != nil {
 		return nil, dto.ErrUserNameNotFound
@@ -50,6 +52,11 @@ func (s *authServiceImpl) PasswordLogin(ctx context.Context, req *dto.PasswordLo
 	hashedPass := utils.HashPassword(req.Password, user.Salt)
 	if hashedPass != user.Pass {
 		return nil, dto.ErrPasswordIncorrect
+	}
+	if roleCheck != nil {
+		if err := roleCheck(user); err != nil {
+			return nil, err
+		}
 	}
 	currentTime := time.Now()
 	claims := dto.JwtClaims{
@@ -73,6 +80,26 @@ func (s *authServiceImpl) PasswordLogin(ctx context.Context, req *dto.PasswordLo
 			AccessToken: accessToken,
 		},
 	}, nil
+}
+
+func (s *authServiceImpl) PasswordLogin(
+	ctx context.Context,
+	req *dto.PasswordLoginRequest,
+) (*dto.LoginResponse, error) {
+
+	return s.login(ctx, req, nil)
+}
+
+func (s *authServiceImpl) StaffPasswordLogin(
+	ctx context.Context,
+	req *dto.PasswordLoginRequest,
+) (*dto.LoginResponse, error) {
+	return s.login(ctx, req, func(user *model.User) error {
+		if user.Permission != constants.RoleEmployee {
+			return dto.ErrPermissionDenied
+		}
+		return nil
+	})
 }
 
 func (s *authServiceImpl) authCodeSymKeyGenerate(tenantId string) (string, error) {

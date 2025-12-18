@@ -18,12 +18,14 @@ func InitRouter(di *do.Injector) (*gin.Engine, error) {
 	userController := controller.NewUserController(di)
 	authController := controller.NewAuthController(di)
 	eBillsController := controller.NewEBillsController(di)
+	staffController := controller.NewStaffController(di)
 
 	v1 := r.Group("/api/v1")
 
 	//password login
 	authGroup := v1.Group("/auth")
 	authGroup.POST("/login", authController.PasswordLogin)
+	authGroup.POST("/loginStaff", authController.StaffPasswordLogin)
 
 	// CRUD
 	userGroup := v1.Group("/user")
@@ -40,5 +42,10 @@ func InitRouter(di *do.Injector) (*gin.Engine, error) {
 	eBillsGroup.GET("/EAmount", eBillsController.EAmount)
 	eBillsGroup.GET("/Report", eBillsController.ReportMonthly)
 
+	// api for staff
+	staffGroup := v1.Group("/staff")
+	staffGroup.Use(middlewares.Auth(di))
+	staffGroup.GET("/ReportList", staffController.GetReportList)
+	staffGroup.GET("/ReportEUsed", staffController.GetReportEUsed)
 	return r, nil
 }

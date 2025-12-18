@@ -12,7 +12,7 @@ const (
 	ErrInternalServerError       = "ISE"
 	ErrUserTokenInvalidOrExpired = "TOKERR"
 	ErrCannotGenerateToken       = "TOKCG"
-	ErrPermissionDenied          = "PERMISSIONDENIED"
+	ErrPermissionDenied          = "PERMISSION DENIED"
 	ErrNotFillAllFields          = "DEV0001"
 	ErrDataFormatWrong           = "DEV0002"
 	ErrStrconv                   = "DEV0004"

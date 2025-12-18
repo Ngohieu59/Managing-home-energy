@@ -17,6 +17,7 @@ type UserRepository interface {
 	Update(ctx context.Context, user *model.User) error
 	Delete(ctx context.Context, id uint) error
 	List(ctx context.Context, limit int, offset int, OrderBy string) (*dto.ListUserResponse, error)
+	ListUser(ctx context.Context, userType string, city string, ward string) (*dto.ListUserResponse, error)
 }
 type userRepo struct {
 	db *gorm.DB
@@ -60,12 +61,45 @@ func (u *userRepo) Delete(ctx context.Context, id uint) error {
 
 func (u *userRepo) List(ctx context.Context, limit int, offset int, OrderBy string) (*dto.ListUserResponse, error) {
 	var userList []*dto.User
-	err := u.db.WithContext(ctx).
-		Limit(limit).
-		Offset(offset).
-		Order(OrderBy).
-		Find(&userList).Error
+	if OrderBy == "" {
+		OrderBy = "created_at desc"
+	}
+	query := u.db.WithContext(ctx)
+	if limit > 0 {
+		query = query.Limit(limit).Offset(offset).Order(OrderBy)
+	} else {
+		query = query.Offset(offset).Order(OrderBy)
+	}
+
+	err := query.Find(&userList).Error
+
 	if err != nil {
+		return nil, err
+	}
+	resp := &dto.ListUserResponse{
+		Data: userList,
+	}
+
+	return resp, nil
+}
+
+func (u *userRepo) ListUser(ctx context.Context, userType string, city string, ward string) (*dto.ListUserResponse, error) {
+	var userList []*dto.User
+	query := u.db.WithContext(ctx).Model(&dto.User{})
+
+	if userType != "" {
+		query = query.Where("type = ?", userType)
+	}
+
+	if city != "" {
+		query = query.Where("city = ?", city)
+	}
+
+	if ward != "" {
+		query = query.Where("ward = ?", ward)
+	}
+
+	if err := query.Find(&userList).Error; err != nil {
 		return nil, err
 	}
 	resp := &dto.ListUserResponse{

@@ -14,10 +14,6 @@ import (
 	"github.com/samber/do"
 )
 
-const (
-	layout = "02-01-2006" // định dạng dd-mm-yyyy
-)
-
 type EBillsService interface {
 	GetEAmount(ctx *gin.Context, req *dto.EBillMoneyReq) (*dto.EBillMoneyResp, error)
 	ReportMonthlyUsageComparison(ctx *gin.Context, Month string) (*dto.ReportMonthlyResp, error)
@@ -44,17 +40,9 @@ func (e *EBillServiceImpl) GetEAmount(ctx *gin.Context, req *dto.EBillMoneyReq) 
 	if !exist {
 		return nil, dto.ErrUserTokenInvalidOrExpired
 	}
-	StartDate, errS := time.Parse(layout, req.StartDate)
-	if errS != nil {
-		return nil, dto.ErrDataFormatWrong
-	}
-	EndDate, errD := time.Parse(layout, req.EndDate)
+	StartDate, EndDate, errD := utils.CheckDate(req.StartDate, req.EndDate)
 	if errD != nil {
-		return nil, dto.ErrDataFormatWrong
-	}
-
-	if StartDate.After(EndDate) {
-		return nil, dto.ErrStartAfterEnd
+		return nil, errD
 	}
 
 	TotalEUsed, err := e.EBillRepo.CalcEUsed(ctx, userName.(string), StartDate, EndDate, userType.(string))
@@ -132,16 +120,9 @@ func (e *EBillServiceImpl) EstimateEBill(ctx *gin.Context, req *dto.EBillMoneyRe
 	}
 	var TotalMoney = 0.0
 	EUsed := req.Electric
-	StartDate, errS := time.Parse(layout, req.StartDate)
-	if errS != nil {
-		return nil, dto.ErrDataFormatWrong
-	}
-	EndDate, errD := time.Parse(layout, req.EndDate)
+	StartDate, EndDate, errD := utils.CheckDate(req.StartDate, req.EndDate)
 	if errD != nil {
-		return nil, dto.ErrDataFormatWrong
-	}
-	if StartDate.After(EndDate) {
-		return nil, dto.ErrStartAfterEnd
+		return nil, errD
 	}
 	days := EndDate.Sub(StartDate).Hours()/24 + 1
 

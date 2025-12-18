@@ -6,6 +6,7 @@ type User struct {
 	Username   string `json:"username"`
 	Age        int    `json:"age"`
 	Permission string `json:"permission"`
+	Type       string `json:"type"`
 }
 
 type CreateUserReq struct {

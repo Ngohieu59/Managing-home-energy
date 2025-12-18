@@ -17,6 +17,7 @@ var rootCmd = &cobra.Command{
 func init() {
 	rootCmd.AddCommand(api.Cmd)
 	rootCmd.AddCommand(migrate.Cmd)
+	rootCmd.AddCommand(api.CmdEmployee)
 }
 
 func Execute() {

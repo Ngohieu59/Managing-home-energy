@@ -19,11 +19,20 @@ var Cmd = &cobra.Command{
 	Short: "api",
 	Long:  `api`,
 	Run: func(cmd *cobra.Command, args []string) {
-		startApi()
+		startApi("")
 	},
 }
 
-func startApi() {
+var CmdEmployee = &cobra.Command{
+	Use:   "api_employee",
+	Short: "api_employee",
+	Long:  `api_employee`,
+	Run: func(cmd *cobra.Command, args []string) {
+		startApi("employee")
+	},
+}
+
+func startApi(role string) {
 	injection := do.New() // Create container
 	defer func() {
 		_ = injection.Shutdown()
@@ -33,6 +42,9 @@ func startApi() {
 	connection.Inject(injection)
 	mysql.Inject(injection)
 	service.Inject(injection)
+	if role == "employee" {
+		service.InjectStaff(injection)
+	}
 
 	r, err := InitRouter(injection)
 
