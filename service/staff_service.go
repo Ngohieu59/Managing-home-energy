@@ -98,7 +98,6 @@ func (s *StaffServiceImpl) GetReportList(ctx *gin.Context, req *dto.StaffReportL
 				TotalMoneyBeforeTax = utils.MoneyAdministrative(TotalEUsed.Total, days)
 			}
 			TotalMoney := math.Round(TotalMoneyBeforeTax * (1 + constants.Taxt/100))
-			fmt.Println("TotalMoney", TotalMoney)
 			userReport = append(userReport, &dto.UserReport{
 				ID:        user.ID,
 				Name:      user.Name,
@@ -147,7 +146,6 @@ func (s *StaffServiceImpl) GetReportEUse(ctx *gin.Context, req *dto.ReportEUseRe
 
 			case constants.TypeFamily:
 				{
-					fmt.Println("chạy vào đây mấy lần")
 					if TotalEUsed.Total <= QuantityL1 {
 						NumFamilyQuantityL1 += 1
 					} else if TotalEUsed.Total <= QuantityL2 {
